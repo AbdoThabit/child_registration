@@ -15,6 +15,7 @@ import { AppLoggerModule } from './common/logger/logger.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClassModule } from './modules/class/class.module';
 import { MssqlClientModule } from './config/mssql/mssql-client.module';
+import { ParentModule } from './modules/parent/parent.module';
 
 
 @Module({
@@ -44,7 +45,8 @@ import { MssqlClientModule } from './config/mssql/mssql-client.module';
         MssqlClientModule,
         AuthModule,
         AppLoggerModule,
-        ClassModule
+        ClassModule,
+        ParentModule
     ],
     providers: [
       AppService,

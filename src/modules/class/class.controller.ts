@@ -9,7 +9,7 @@ export class ClassController {
   constructor(private readonly classService: ClassService) {}
 
 
-  @Get('')
+  @Get()
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
     async getClassesByCenter(
