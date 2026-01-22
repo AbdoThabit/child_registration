@@ -13,6 +13,8 @@ import { AppService } from './app.service';
 import { AppController } from './app.controller';
 import { AppLoggerModule } from './common/logger/logger.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ClassModule } from './modules/class/class.module';
+import { MssqlClientModule } from './config/mssql/mssql-client.module';
 
 
 @Module({
@@ -39,8 +41,10 @@ import { AuthModule } from './modules/auth/auth.module';
                 AcceptLanguageResolver,                   // standard Accept-Language header
             ],
         }),
+        MssqlClientModule,
         AuthModule,
-        AppLoggerModule
+        AppLoggerModule,
+        ClassModule
     ],
     providers: [
       AppService,
