@@ -7,6 +7,7 @@ import { FillingRegistrationService } from './services/filling-registration/fill
 import { FillingChildDataDto } from './dto/filling-child-data.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ParseChildrenArrayPipe } from './utilities/child-data-dto.pipe';
+import { CreatedLinkDetails } from './dto/link-details.dto';
 
 @Controller('registration')
 export class RegistrationController {
@@ -22,7 +23,7 @@ export class RegistrationController {
       @User('centerId', ParseIntPipe) centerId: number,
       @User('sub', ParseIntPipe) userId: number,
       @Body() dto: CreateParentChildrenRegistrationDto,
-    ) {
+    ):Promise<CreatedLinkDetails> {
       return await this.registrationService.createRegistrationLink(centerId, userId, dto);
     }
 

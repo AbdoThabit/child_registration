@@ -12,6 +12,8 @@ import { ParentRegistrationLink } from 'src/database/icare/entities/entities/Par
 import { ChildRegistration } from 'src/database/icare/entities/entities/ChildRegistration';
 import { ChildRegistrationInfoDto, CreateParentChildrenRegistrationDto } from '../dto/create-parent-children-registration.dto';
 import { plainToClass } from 'class-transformer';
+import { DAYSTOEXPIRE, FORMURL } from '../utilities/constants';
+import { CreatedLinkDetails } from '../dto/link-details.dto';
 @Injectable()
 export class GeneratingRegistrationService {
 
@@ -34,9 +36,8 @@ export class GeneratingRegistrationService {
         }
 
 
-        daysToExpire :number = 14;
 
-   async createRegistrationLink(centerId: number, userId: number,dto :CreateParentChildrenRegistrationDto ): Promise<string> {
+   async createRegistrationLink(centerId: number, userId: number,dto :CreateParentChildrenRegistrationDto ): Promise<CreatedLinkDetails> {
     try {
       const center = await this.centerRepository.findOne({ where: { centerId } });
         if (!center) {
@@ -48,7 +49,8 @@ export class GeneratingRegistrationService {
       }    
         const token = this.generateSecureToken(16); // 32 hex characters
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + this.daysToExpire * 24 * 60 * 60 * 1000); // daysToExpire days from now
+        const daysToExpire = DAYSTOEXPIRE || 14;
+        const expiresAt = new Date(now.getTime() + daysToExpire * 24 * 60 * 60 * 1000); // daysToExpire days from now
         const newLink = this.parentRegistrationLinkRepository.create({
             token,
             centerId,
@@ -63,7 +65,12 @@ export class GeneratingRegistrationService {
         throw new InternalServerErrorException('Failed to create parent registration link');
         }
         await this.addChildRegistrationsToLink(createdLink.id, dto.children);
-        return token;
+        let linkDetails = new CreatedLinkDetails()
+        linkDetails.linkId = createdLink.id;
+        linkDetails.numberOfChildren = dto.children.length;
+        linkDetails.token = token;
+        linkDetails.url = FORMURL ? `${FORMURL}${token}`:'';
+        return linkDetails;
     } catch (error) {
       this.handleError(error, `Failed to create registration link: ${error.message}`, { dto, centerId, userId });
     }
