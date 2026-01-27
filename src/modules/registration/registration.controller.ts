@@ -1,9 +1,9 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
-import { GeneratingRegistrationService } from './services/generate-registration.service';
+import { AdminRegistrationService } from './services/generate-registration.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from 'src/common/decorators/user.decorator';
 import { ChildRegistrationInfoDto, CreateParentChildrenRegistrationDto } from './dto/create-parent-children-registration.dto';
-import { FillingRegistrationService } from './services/filling-registration/filling-registration.service';
+import { ParentRegistrationService } from './services/filling-registration/filling-registration.service';
 import { FillingChildDataDto } from './dto/filling-child-data.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ParseChildrenArrayPipe } from './utilities/child-data-dto.pipe';
@@ -11,8 +11,8 @@ import { CreatedLinkDetails } from './dto/link-details.dto';
 
 @Controller('registration')
 export class RegistrationController {
-  constructor(private readonly registrationService: GeneratingRegistrationService,
-              private readonly parentRegistrationService: FillingRegistrationService
+  constructor(private readonly registrationService: AdminRegistrationService,
+              private readonly parentRegistrationService: ParentRegistrationService
   ) {}
 
 
@@ -58,5 +58,17 @@ export class RegistrationController {
       @UploadedFiles() images: Express.Multer.File[],
     ) {
       return await this.parentRegistrationService.addNewChildData(token, dtos, images);
+    }
+
+
+    @Post('approve/:id')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async approveChild(
+      @User('centerId', ParseIntPipe) centerId: number,
+      @User('sub', ParseIntPipe) userId: number,
+      @Param('id')childRegId : number,
+    ) {
+      return await this.registrationService.approveChild(centerId, userId, childRegId);
     }
 }

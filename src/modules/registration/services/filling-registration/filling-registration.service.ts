@@ -8,7 +8,7 @@ import { Class } from 'src/database/icare/entities/entities/Class';
 import { Parent } from 'src/database/icare/entities/entities/Parent';
 import { ParentRegistrationLink } from 'src/database/icare/entities/entities/ParentRegistrationLinks';
 import { Repository } from 'typeorm';
-import { GeneratingRegistrationService } from '../generate-registration.service';
+import { AdminRegistrationService } from '../generate-registration.service';
 import * as mssql from 'mssql';
 import { ChildRegistrationMinifiedDto } from '../../dto/child-registration-minfied.dto';
 import { plainToClass, plainToInstance } from 'class-transformer';
@@ -18,7 +18,7 @@ import { ImageService } from 'src/modules/file-system/services/images/image.serv
 import { ImageInfo } from 'src/modules/file-system/data/enums';
 import { ChildRegistrationResponseDto } from '../../dto/child-registration-response.dto';
 @Injectable()
-export class FillingRegistrationService {
+export class ParentRegistrationService {
     constructor(
             @InjectRepository(Parent, 'icare')
             private parentRepository: Repository<Parent>,
@@ -34,7 +34,7 @@ export class FillingRegistrationService {
             private readonly logger: PinoLogger,
             @Inject(ICARE_MSSQL_POOL)
             private readonly icarePool: mssql.ConnectionPool,) {
-            this.logger.setContext(GeneratingRegistrationService.name);
+            this.logger.setContext(AdminRegistrationService.name);
             }
 
     async getChildRegistrationByToken(token: string): Promise<ChildRegistrationMinifiedDto[]> {
@@ -46,7 +46,7 @@ export class FillingRegistrationService {
             }
             const childRegistrations = await this.childRegistrationRepository.find({ where: { registrationLinkId: registrationLink.id } });
             const remainingChildrenToFill = childRegistrations.filter(ch=>{
-              ch.isComplete = false && ch.status != 'completed'
+              !ch.isComplete  
             });
             if (!childRegistrations || childRegistrations.length === 0) {
                 throw new NotFoundException(`No child registrations found for token ${token}`);

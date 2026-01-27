@@ -37,7 +37,8 @@ export class ChildRegistration {
 
   @Column({ type: 'int', name: 'approved_by_admin_id', nullable: true })
   approvedByAdminId: number | null;
-
+  @Column({ type: 'nvarchar',   length: 250, name: 'parent_id' })
+  parentId: string;
   @Column({ type: 'datetime', name: 'approved_at', nullable: true })
   approvedAt: Date | null;
 

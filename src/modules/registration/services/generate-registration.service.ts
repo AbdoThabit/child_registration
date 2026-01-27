@@ -14,25 +14,36 @@ import { ChildRegistrationInfoDto, CreateParentChildrenRegistrationDto } from '.
 import { plainToClass } from 'class-transformer';
 import { DAYSTOEXPIRE, FORMURL } from '../utilities/constants';
 import { CreatedLinkDetails } from '../dto/link-details.dto';
+import { Child } from 'src/database/icare/entities/entities/Child';
+import { ClassChild } from 'src/database/icare/entities/entities/ClassChild';
+import { vwClass } from 'src/database/icare/entities/views/vhClasses';
+import { ImageService } from 'src/modules/file-system/services/images/image.service';
 @Injectable()
-export class GeneratingRegistrationService {
+export class AdminRegistrationService {
 
 
  constructor(
+        private readonly imageService : ImageService,
         @InjectRepository(Parent, 'icare')
         private parentRepository: Repository<Parent>,
         @InjectRepository(CareCenter, 'icare')
         private centerRepository: Repository<CareCenter>,
         @InjectRepository(Class, 'icare')
         private classRepository: Repository<Class>,
+        @InjectRepository(Child, 'icare')
+        private childRepository: Repository<Child>,
          @InjectRepository(ParentRegistrationLink, 'icare')
         private parentRegistrationLinkRepository: Repository<ParentRegistrationLink>,
         @InjectRepository(ChildRegistration, 'icare')
         private childRegistrationRepository: Repository<ChildRegistration>,
+        @InjectRepository(ClassChild, 'icare')
+                private classChildRepo: Repository<ClassChild>,
+        @InjectRepository(vwClass, 'icare')
+                private vhClassRepo: Repository<vwClass>,        
         private readonly logger: PinoLogger,
         @Inject(ICARE_MSSQL_POOL)
         private readonly icarePool: mssql.ConnectionPool,) {
-        this.logger.setContext(GeneratingRegistrationService.name);
+        this.logger.setContext(AdminRegistrationService.name);
         }
 
 
@@ -88,6 +99,7 @@ async addChildRegistrationsToLink(linkId: number, dtos: ChildRegistrationInfoDto
                 throw new NotFoundException(`Class with id ${dto.classId} not found in center ${link.centerId}`);
             }
             const newChildRegistration = this.childRegistrationRepository.create({
+                parentId : link.parentId,
                 registrationLinkId: linkId,
                 childName: dto.childName,
                 classId: dto.classId,
@@ -106,6 +118,103 @@ async addChildRegistrationsToLink(linkId: number, dtos: ChildRegistrationInfoDto
         this.handleError(error, `Failed to add child registrations to link: ${error.message}`, { linkId, dtos });
     }
 }
+
+async approveChild(centerId:number,userId:number,childRegistrationId:number){
+try{
+  let childRegistrationRecord = await this.childRegistrationRepository.findOne({where:{id : childRegistrationId}})
+if (!childRegistrationRecord) throw new NotFoundException(`child registration record with id ${childRegistrationId} was not found`);
+if(childRegistrationRecord.status !== 'filled') throw new BadRequestException(`child registration record with id ${childRegistrationId} was not filled by parent`);
+    const requestedClass = await this.classRepository.findOne({where:{
+      centerId : centerId,
+      classId : childRegistrationRecord.classId
+    }});
+    if(!requestedClass)throw new NotFoundException('class not found');
+    const  isPlaceAvailable  = await this.isPlaceAvailable(requestedClass.classId,centerId);
+          if(!isPlaceAvailable )throw new RangeError(`there is no available place at this class`);
+    let child = new Child();
+    child.parentId = childRegistrationRecord.parentId;
+    child.childName = childRegistrationRecord.childName;
+    child.nationality = childRegistrationRecord.nationality??null;
+    child.nationalityId = childRegistrationRecord.nationalityId??null;
+    child.placeOfBirth = childRegistrationRecord.placeOfBirth;
+    child.childPin = childRegistrationRecord.childPin;
+    child.specialNeeds = childRegistrationRecord.specialNeeds??null;
+    child.childNotes = childRegistrationRecord.childNotes??null;
+    child.isDemo = false;
+    child.childDob = childRegistrationRecord.childDob??null;
+    child.isActive = true;
+    child.deleted = false;
+    child.activationDate = new Date();
+    child.registrationDate = childRegistrationRecord.registrationDate??null;
+    child.canTakephoto = childRegistrationRecord.canTakePhoto;
+    child.gender = childRegistrationRecord.gender;
+    child.childPhoto = childRegistrationRecord.childPhoto;
+    
+    let createdChild = await this.childRepository.save(child);
+    if(!createdChild)  throw new InternalServerErrorException('failed to add child') 
+    const childId = createdChild.childId;
+    await this.insertIntoClassChild(childId,childRegistrationRecord.classId);
+    await this.generateChildPortalKey(childId);
+    const qrcode =await this.generateChildQRCode(childId);
+    this.imageService.generateQrCode(qrcode, centerId); 
+
+    childRegistrationRecord.status ='acepted';
+    childRegistrationRecord.isComplete = true;
+
+    await this.childRegistrationRepository.save(childRegistrationRecord);
+
+    return {classId : requestedClass.classId, childId : childId , childName :createdChild.childName}
+    
+}
+catch(error){
+    this.handleError(error,error.message,{centerId,userId,childRegistrationId});
+  }
+}
+
+
+
+async isPlaceAvailable(classId: number,centerId : number){
+const selectedClass = await this.vhClassRepo.findOne({where:{ classId , centerId}});
+if (!selectedClass)throw new NotFoundException (`not found class with id ${classId}`);
+const capcity = selectedClass.classCapacity;
+const totalCount = selectedClass.childCount;
+return capcity - totalCount > 0 ;
+}
+
+async generateChildQRCode(childId : number):Promise<string>{
+const generateQRCodeRequest = this.icarePool.request();
+        generateQRCodeRequest.input('child_id', mssql.Int, childId);
+        generateQRCodeRequest.output('qrcode', mssql.NVarChar);
+        const result = await generateQRCodeRequest.execute('spGenerateChildQrCode');
+        return result.output.qrcode;
+}
+
+async generateChildPortalKey(childId : number):Promise<string>{
+const generateChildPortalKeyRequest = this.icarePool.request();
+        generateChildPortalKeyRequest.input('child_id', mssql.Int, childId);
+        generateChildPortalKeyRequest.output('key', mssql.NVarChar);
+        const result = await generateChildPortalKeyRequest.execute('spGenerateChildPortalKey');
+        return result.output.key;
+}
+async insertIntoClassChild(childId : number,classId : number) : Promise<void>{
+try{
+const existedClassChild = await this.classChildRepo.findOne({where :{
+childId,
+classId
+}})
+this.logger.debug('existedClassChild:', existedClassChild);
+if(!existedClassChild){
+  let classChild = new ClassChild();
+  classChild.childId = childId;
+  classChild.classId = classId;
+   await this.classChildRepo.save(classChild);
+  
+  return ;
+}
+return ;
+}catch(error){
+  this.handleError(error,error.message,{classId , childId})
+}}
 
    /**
    * Generate a cryptographically secure random token
