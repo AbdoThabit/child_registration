@@ -158,7 +158,7 @@ if(childRegistrationRecord.status !== 'filled') throw new BadRequestException(`c
     const qrcode =await this.generateChildQRCode(childId);
     this.imageService.generateQrCode(qrcode, centerId); 
 
-    childRegistrationRecord.status ='acepted';
+    childRegistrationRecord.status ='accepted';
     childRegistrationRecord.isComplete = true;
 
     await this.childRegistrationRepository.save(childRegistrationRecord);
