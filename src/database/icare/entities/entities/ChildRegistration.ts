@@ -21,6 +21,8 @@ export class ChildRegistration {
 
   @Column({ type: 'int', name: 'class_id' })
   classId: number;
+  @Column({ type: 'nvarchar', length: 255, name: 'class_name', nullable: true })
+  className: string;
 
   @Column({ type: 'nvarchar', length: 20, default: 'pending' })
   status: string;

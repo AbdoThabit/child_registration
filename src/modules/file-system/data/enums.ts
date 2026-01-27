@@ -1,0 +1,21 @@
+ export enum ImageInfo
+{
+    Child,
+    Parent,
+    Provider,
+    Class,
+    Event,
+    CareCenter,
+    Logo,
+    PickupPerson,
+    Album,
+    Photo,
+    MedicalReport,
+    ScheduleMenuImage,
+    PrintableReport,
+    NotificationIcon,
+    NotificationImage,
+    FoodPhoto,
+    Watermark,
+    ChildQRCode
+};

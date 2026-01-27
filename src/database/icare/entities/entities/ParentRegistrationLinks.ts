@@ -21,8 +21,8 @@ export class ParentRegistrationLink {
   @Column({ type: 'int', name: 'center_id' })
   centerId: number;
 
-  @Column({ type: 'int', name: 'parent_id' })
-  parentId: number;
+  @Column({ type: 'nvarchar',   length: 250, name: 'parent_id' })
+  parentId: string;
 
   @Column({ type: 'nvarchar', length: 20, default: 'active' })
   status: string;

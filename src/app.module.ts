@@ -16,6 +16,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ClassModule } from './modules/class/class.module';
 import { MssqlClientModule } from './config/mssql/mssql-client.module';
 import { ParentModule } from './modules/parent/parent.module';
+import { RegistrationModule } from './modules/registration/registration.module';
+import { FileSystemModule } from './modules/file-system/file-system.module';
 
 
 @Module({
@@ -46,7 +48,9 @@ import { ParentModule } from './modules/parent/parent.module';
         AuthModule,
         AppLoggerModule,
         ClassModule,
-        ParentModule
+        ParentModule,
+        RegistrationModule,
+        FileSystemModule
     ],
     providers: [
       AppService,
