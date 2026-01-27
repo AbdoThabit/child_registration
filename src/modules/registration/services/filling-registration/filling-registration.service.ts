@@ -51,7 +51,7 @@ export class ParentRegistrationService {
             if (!childRegistrations || childRegistrations.length === 0) {
                 throw new NotFoundException(`No child registrations found for token ${token}`);
             }
-            return plainToInstance(ChildRegistrationMinifiedDto, remainingChildrenToFill, { excludeExtraneousValues: true });
+            return plainToInstance(ChildRegistrationMinifiedDto, childRegistrations, { excludeExtraneousValues: true });
         } catch (error) {
             this.handleError(error, `Failed to get child registrations by token: ${error.message}`, { token });
         }}
