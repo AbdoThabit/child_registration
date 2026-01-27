@@ -1,8 +1,9 @@
-import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { ICARE_MSSQL_POOL } from 'src/config/mssql/mssql-client.constants';
 import * as mssql from 'mssql';
 import { ClassResponseDto } from './dto/class-response.dto';
+import { plainToClass } from 'class-transformer';
 
 
 @Injectable()
@@ -24,13 +25,16 @@ export class ClassService {
             .input('center_id', mssql.Int, centerId)
             .input('user_id', mssql.Int, userId)
             .execute('iCareWebPanel_getClassesByCenter');
-            return result.recordset as ClassResponseDto[];
+        const classesData = result.recordset;
+        if(!classesData || classesData.length === 0){
+            throw new NotFoundException(`No classes found for center with id ${centerId}`);
+        }
+        const classes = classesData.map(cls => plainToClass(ClassResponseDto, cls, { excludeExtraneousValues: true }));
+        return classes;
         }
         catch(error){
-            this.handleError(error, `Failed to get classes by center : ${error.message}` , { centerId, userId });
-   
-        }
-      }
+            this.handleError(error, `Failed to get classes by center : ${error.message}` , { centerId , userId });
+      }}
 
 
       private handleError(error: any, message: string, context: object): never {

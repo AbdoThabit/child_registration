@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, Inject, Injectable, InternalServerErrorException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { ICARE_MSSQL_POOL } from 'src/config/mssql/mssql-client.constants';
@@ -8,6 +8,10 @@ import { ParentUsers } from 'src/database/isecure/entities/entities/ParentUsers'
 import { Repository } from 'typeorm';
 import * as mssql from 'mssql';
 import { ParentResponseDto } from './dto/parent-response.dto';
+import { plainToClass } from 'class-transformer';
+import { not } from 'rxjs/internal/util/not';
+import { createdParentDto } from './dto/created-parent.dto';
+import { CreateNewParentDto } from './dto/Create-new-parent.dto';
 
 @Injectable()
 export class ParentService {
@@ -29,7 +33,13 @@ async getParentsByCenter(centerId: number ): Promise<ParentResponseDto[]> {
             const result = await pool.request()
             .input('center_id', mssql.Int, centerId)
             .execute('getParentsByCenter');
-            return result.recordset as ParentResponseDto[];
+            const parentsData = result.recordset;
+            if(!parentsData || parentsData.length === 0){
+                throw new NotFoundException(`No parents found for center with id ${centerId}`);
+            }
+
+            const parents = parentsData.map(parent => plainToClass(ParentResponseDto, parent, { excludeExtraneousValues: true }));
+            return parents;
         }
         catch(error){
             this.handleError(error, `Failed to get parents by center : ${error.message}` , { centerId });
@@ -37,8 +47,50 @@ async getParentsByCenter(centerId: number ): Promise<ParentResponseDto[]> {
         }
       }
 
+async CreateNewParent(centerId : number,dto : CreateNewParentDto){
+    try{
+    const center = await this.centerRepository.findOne({
+        where: { centerId}
+        })
+        if(!center) throw new NotFoundException(`Care center with id ${centerId} not found`);
+       const parentId = this.generateParentId();
+       const newParent = this.parentRepository.create(dto);
+       newParent.parentId = parentId;
+       newParent.centerId = centerId;
+       const createdParent = await this.parentRepository.save(newParent);
+       if(!createdParent) throw new InternalServerErrorException('Failed to create new parent');
+       const parentUser = new ParentUsers();
+       parentUser.parentId = createdParent.parentId;
+       parentUser.username = this.generateUserName(centerId, createdParent.id);
+       parentUser.formattedUserName = createdParent.parentName;
+       parentUser.userPassword = dto.pin;
+       parentUser.isActive = true;
+       parentUser.centerId = centerId;
+       parentUser.centerType = center.type;
+       const savedParentUser = await this.parentUsersRepository.save(parentUser);
+       if(!savedParentUser) throw new InternalServerErrorException('Failed to create parent user for parentId : ' + createdParent.parentId);
+       let returnedParent = plainToClass(createdParentDto, createdParent,{ excludeExtraneousValues: true });
+       returnedParent.userName = parentUser.username;
+       returnedParent.pin = parentUser.userPassword;
+       return returnedParent;
+    }
+    catch(error){
+        this.handleError(error, `Failed to create new parent : ${error.message}` , { dto });
+    }
+}
+private generateParentId(): string {
+    const startDate = new Date('2012-01-01T00:00:00Z');
+    const now = new Date();
+    const totalSeconds = (now.getTime() - startDate.getTime()) / 1000;
+    const roundedSeconds = Math.round(totalSeconds).toString();
+    console.log(roundedSeconds);
+    return roundedSeconds;
+}
 
-      private handleError(error: any, message: string, context: object): never {
+private generateUserName(centerId: number, id: number): string{
+  return `PN${centerId}@${id}`;
+};
+private handleError(error: any, message: string, context: object): never {
     // Log the error with full context
     this.logger.error(
       {

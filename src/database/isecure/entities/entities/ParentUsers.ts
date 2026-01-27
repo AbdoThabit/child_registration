@@ -50,8 +50,8 @@ export class ParentUsers {
   })
   creationDate: Date | null;
 
-  @Column("nvarchar", { name: "access_token", nullable: true, length: 450 })
-  accessToken: string | null;
+  // @Column("nvarchar", { name: "access_token", nullable: true, length: 450 })
+  // accessToken: string | null;
 
   @Column("datetime", { name: "last_session", nullable: true })
   lastSession: Date | null;

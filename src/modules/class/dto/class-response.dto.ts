@@ -5,29 +5,29 @@ export class ClassResponseDto {
     @ApiProperty()
     classId: number;
 
-    @Expose()
-    @ApiProperty()
-    classTheme: string;
+    // @Expose()
+    // @ApiProperty()
+    // classTheme: string;
 
-    @Expose()
-    @ApiProperty()
-    classLogo: string;
+    // @Expose()
+    // @ApiProperty()
+    // classLogo: string;
 
-    @Expose()
-    @ApiProperty()
-    classSection: string;
+    // @Expose()
+    // @ApiProperty()
+    // classSection: string;
 
     @Expose()
     @ApiProperty()
     className: string;
 
-    @Expose()
-    @ApiProperty()
-    classDescription: string;
+    // @Expose()
+    // @ApiProperty()
+    // classDescription: string;
 
-    @Expose()
-    @ApiProperty()
-    classCategory?: number;
+    // @Expose()
+    // @ApiProperty()
+    // classCategory?: number;
 
     @Expose()
     @ApiProperty()
