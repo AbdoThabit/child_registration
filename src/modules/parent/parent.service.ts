@@ -38,7 +38,8 @@ async getParentsByCenter(centerId: number ): Promise<ParentResponseDto[]> {
                 throw new NotFoundException(`No parents found for center with id ${centerId}`);
             }
 
-            const parents = parentsData.map(parent => plainToClass(ParentResponseDto, parent, { excludeExtraneousValues: true }));
+            const parents = parentsData.filter(parent => parent.deleted == false)
+            .map(parent => plainToClass(ParentResponseDto, parent, { excludeExtraneousValues: true }));
             return parents;
         }
         catch(error){
