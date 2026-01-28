@@ -10,6 +10,8 @@ export class ChildRegistrationMinifiedDto {
   className?: string;
   @Expose()
   status: string;
+  @Expose({name:'isComplete'})
+  isCompleted: boolean;
   @Expose()
-  isComplete: boolean;
+  isApproved: boolean;
 }

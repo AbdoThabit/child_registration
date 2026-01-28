@@ -18,6 +18,7 @@ import { Child } from 'src/database/icare/entities/entities/Child';
 import { ClassChild } from 'src/database/icare/entities/entities/ClassChild';
 import { vwClass } from 'src/database/icare/entities/views/vhClasses';
 import { ImageService } from 'src/modules/file-system/services/images/image.service';
+import { ChildResponsedDto } from '../dto/child-response.dto';
 @Injectable()
 export class AdminRegistrationService {
 
@@ -123,6 +124,7 @@ async approveChild(centerId:number,userId:number,childRegistrationId:number){
 try{
   let childRegistrationRecord = await this.childRegistrationRepository.findOne({where:{id : childRegistrationId}})
 if (!childRegistrationRecord) throw new NotFoundException(`child registration record with id ${childRegistrationId} was not found`);
+if(childRegistrationRecord.status == 'approved') throw new BadRequestException(`child already approved`);
 if(childRegistrationRecord.status !== 'filled') throw new BadRequestException(`child registration record with id ${childRegistrationId} was not filled by parent`);
     const requestedClass = await this.classRepository.findOne({where:{
       centerId : centerId,
@@ -158,12 +160,18 @@ if(childRegistrationRecord.status !== 'filled') throw new BadRequestException(`c
     const qrcode =await this.generateChildQRCode(childId);
     await this.imageService.generateQrCode(qrcode, centerId); 
 
-    childRegistrationRecord.status ='accepted';
-    childRegistrationRecord.isComplete = true;
+    childRegistrationRecord.status ='approved';
+    childRegistrationRecord.isApproved = true;
+    childRegistrationRecord.approvedByAdminId = userId
 
     await this.childRegistrationRepository.save(childRegistrationRecord);
-
-    return {classId : requestedClass.classId, childId : childId , childName :createdChild.childName}
+    let childResponse = new ChildResponsedDto() ;
+    childResponse.childId = childId;
+    childResponse.childName = createdChild.childName??'';
+    childResponse.classId = requestedClass.classId;
+    childResponse.className = requestedClass.className??'';
+    
+    return childResponse;
     
 }
 catch(error){

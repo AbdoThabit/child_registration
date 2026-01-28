@@ -90,6 +90,9 @@ export class ChildRegistration {
   @Column({ type: 'bit', name: 'is_complete', default: false })
   isComplete: boolean;
 
+  @Column({ type: 'bit', name: 'is_approved', default: false })
+  isApproved: boolean;
+
   // --- Relationships ---
 
   @ManyToOne(() => ParentRegistrationLink, (link) => link.id)
