@@ -75,10 +75,10 @@ export class AdminRegistrationService {
         if (!createdLink) {
         throw new InternalServerErrorException('Failed to create parent registration link');
         }
-        await this.addChildRegistrationsToLink(createdLink.id, dto.children);
+        const childrenRegisteration = await this.addChildRegistrationsToLink(createdLink.id, dto.children);
         let linkDetails = new CreatedLinkDetails()
         linkDetails.linkId = createdLink.id;
-        linkDetails.numberOfChildren = dto.children.length;
+        linkDetails.numberOfChildren = childrenRegisteration.length;
         linkDetails.token = token;
         linkDetails.url = FORMURL ? `${FORMURL}${token}`:'';
         return linkDetails;
@@ -156,7 +156,7 @@ if(childRegistrationRecord.status !== 'filled') throw new BadRequestException(`c
     await this.insertIntoClassChild(childId,childRegistrationRecord.classId);
     await this.generateChildPortalKey(childId);
     const qrcode =await this.generateChildQRCode(childId);
-    this.imageService.generateQrCode(qrcode, centerId); 
+    await this.imageService.generateQrCode(qrcode, centerId); 
 
     childRegistrationRecord.status ='accepted';
     childRegistrationRecord.isComplete = true;
